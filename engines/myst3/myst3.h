@@ -42,6 +42,8 @@ struct Event;
 
 namespace Myst3 {
 
+float s_getFovScale();
+
 // Engine Debug Flags
 enum {
 	kDebugVariable = (1 << 0),
@@ -170,7 +172,7 @@ public:
 
 	void setMenuAction(uint16 action) { _menuAction = action; }
 
-	void animateDirectionChange(float pitch, float heading, uint16 scriptTicks);
+	void animateDirectionChange(float pitch, float heading, float fov, uint16 scriptTicks);
 	void getMovieLookAt(uint16 id, bool start, float &pitch, float &heading);
 
 	void drawFrame(bool noSwap = false);

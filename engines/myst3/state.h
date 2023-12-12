@@ -318,6 +318,8 @@ public:
 
 	float getLookAtFOV() { return _data.lookatFOV; }
 	void setLookAtFOV(float fov) { _data.lookatFOV = fov; }
+	float getLookAtFOVScale() { return _data.lookatFOVScale; }
+	void setLookAtFOVScale(float fovScale) { _data.lookatFOVScale = fovScale; }
 	float getLookAtPitch() { return _data.lookatPitch; }
 	float getLookAtHeading() { return _data.lookatHeading; }
 	void lookAt(float pitch, float heading) { _data.lookatPitch = pitch; _data.lookatHeading = heading; }
@@ -377,7 +379,7 @@ public:
 		uint8 saveMinute;
 
 		Common::String saveDescription;
-
+		float lookatFOVScale;
 		bool isAutosave;
 
 		StateData();

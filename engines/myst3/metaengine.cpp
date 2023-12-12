@@ -45,6 +45,17 @@ static const ADExtraGuiOptionsMap optionsList[] = {
 			0
 		}
 	},
+	{
+		GAMEOPTION_FOVSCALE_MOD,
+		{
+			_s("Larger FOV"),
+			_s("Increases the field of view."),
+			"fov_increase",
+			false,
+			0,
+			0
+		}
+	},
 
 	AD_EXTRA_GUI_OPTIONS_TERMINATOR
 };

@@ -56,7 +56,7 @@ GameState::StateData::StateData() {
 	maxPitch = 0;
 	minHeading = 0;
 	maxHeading = 0;
-	dword_4C2C90 = 0;
+	lookatFOVScale = 1.f;
 
 	for (uint i = 0; i < 2048; i++)
 		vars[i] = 0;

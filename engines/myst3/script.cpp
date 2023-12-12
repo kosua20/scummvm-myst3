@@ -2246,13 +2246,13 @@ void Script::moviePlayChangeNodeTrans(Context &c, const Opcode &cmd) {
 void Script::lookAt(Context &c, const Opcode &cmd) {
 	debugC(kDebugScript, "Opcode %d: Look at %d, %d", cmd.op, cmd.args[0], cmd.args[1]);
 
-	_vm->animateDirectionChange(cmd.args[0], cmd.args[1], 0);
+	_vm->animateDirectionChange(cmd.args[0], cmd.args[1], _vm->_state->getLookAtFOVScale(), 0);
 }
 
 void Script::lookAtInXFrames(Context &c, const Opcode &cmd) {
 	debugC(kDebugScript, "Opcode %d: Look at %d, %d in %d frames", cmd.op, cmd.args[0], cmd.args[1], cmd.args[2]);
 
-	_vm->animateDirectionChange(cmd.args[0], cmd.args[1], cmd.args[2]);
+	_vm->animateDirectionChange(cmd.args[0], cmd.args[1], _vm->_state->getLookAtFOVScale(), cmd.args[2]);
 }
 
 void Script::lookAtMovieStart(Context &c, const Opcode &cmd) {
@@ -2262,7 +2262,7 @@ void Script::lookAtMovieStart(Context &c, const Opcode &cmd) {
 
 	float startPitch, startHeading;
 	_vm->getMovieLookAt(movieId, true, startPitch, startHeading);
-	_vm->animateDirectionChange(startPitch, startHeading, 0);
+	_vm->animateDirectionChange(startPitch, startHeading, _vm->_state->getLookAtFOVScale(), 0);
 }
 
 void Script::lookAtMovieStartInXFrames(Context &c, const Opcode &cmd) {
@@ -2272,7 +2272,7 @@ void Script::lookAtMovieStartInXFrames(Context &c, const Opcode &cmd) {
 
 	float startPitch, startHeading;
 	_vm->getMovieLookAt(movieId, true, startPitch, startHeading);
-	_vm->animateDirectionChange(startPitch, startHeading, cmd.args[1]);
+	_vm->animateDirectionChange(startPitch, startHeading, _vm->_state->getLookAtFOVScale(), cmd.args[1]);
 }
 
 void Script::runScriptForVarDrawTicksHelper(uint16 var, int32 startValue, int32 endValue, uint16 script, int32 numTicks) {

@@ -61,6 +61,10 @@
 
 namespace Myst3 {
 
+float s_getFovScale(){
+	return ConfMan.getBool("fov_increase") ? 1.5f : 1.f;
+}
+
 Myst3Engine::Myst3Engine(OSystem *syst, const Myst3GameDescription *version) :
 		Engine(syst), _system(syst), _gameDescription(version),
 		_db(nullptr), _scriptEngine(nullptr),
@@ -164,6 +168,8 @@ Common::Error Myst3Engine::run() {
 	_scriptEngine = new Script(this);
 	_db = new Database(getPlatform(), getGameLanguage(), getGameLocalizationType());
 	_state = new GameState(getPlatform(), _db);
+	_state->setLookAtFOVScale( s_getFovScale());
+	
 	_scene = new Scene(this);
 	if (getPlatform() == Common::kPlatformXbox) {
 		_menu = new AlbumMenu(this);
@@ -681,7 +687,8 @@ void Myst3Engine::drawFrame(bool noSwap) {
 		float pitch = _state->getLookAtPitch();
 		float heading = _state->getLookAtHeading();
 		float fov = _state->getLookAtFOV();
-
+		fov *= _state->getLookAtFOVScale();
+		
 		// Apply the rotation effect
 		if (_rotationEffect) {
 			_rotationEffect->update();
@@ -1616,16 +1623,18 @@ Common::Error Myst3Engine::saveGameState(const Common::String &desc, const Graph
 	return saveError;
 }
 
-void Myst3Engine::animateDirectionChange(float targetPitch, float targetHeading, uint16 scriptTicks) {
+void Myst3Engine::animateDirectionChange(float targetPitch, float targetHeading, float targetFovScale, uint16 scriptTicks) {
 	float startPitch = _state->getLookAtPitch();
 	float startHeading = _state->getLookAtHeading();
-
-	if (startPitch == targetPitch && startHeading == targetHeading)
+	float startFovScale = _state->getLookAtFOVScale();
+	
+	if (startPitch == targetPitch && startHeading == targetHeading && targetFovScale == startFovScale)
 		return; // Fast path
 
 	float pitchDistance = targetPitch - startPitch;
 	float headingDistance = targetHeading - startHeading;
-
+	float fovScaleDistance = targetFovScale - startFovScale;
+	
 	// Make sure to use the shortest direction
 	while (ABS(headingDistance) > 180) {
 		if (headingDistance > 0) {
@@ -1640,7 +1649,7 @@ void Myst3Engine::animateDirectionChange(float targetPitch, float targetHeading,
 	if (scriptTicks) {
 		numTicks = scriptTicks;
 	} else {
-		numTicks = sqrt(pitchDistance * pitchDistance + headingDistance * headingDistance)
+		numTicks = sqrt(pitchDistance * pitchDistance + headingDistance * headingDistance + fovScaleDistance * fovScaleDistance)
 				* 30.0f / _state->getCameraMoveSpeed();
 
 		if (numTicks > 0.0f)
@@ -1671,13 +1680,15 @@ void Myst3Engine::animateDirectionChange(float targetPitch, float targetHeading,
 
 			float nextPitch = startPitch + pitchDistance * step;
 			float nextHeading = startHeading + headingDistance * step;
-
+			float nextFovScale = startFovScale + fovScaleDistance * step;
 			_state->lookAt(nextPitch, nextHeading);
+			_state->setLookAtFOVScale(nextFovScale);
 			drawFrame();
 		}
 	}
 
 	_state->lookAt(targetPitch, targetHeading);
+	_state->setLookAtFOVScale(targetFovScale);
 	drawFrame();
 }
 
@@ -1718,7 +1729,7 @@ void Myst3Engine::playMovieGoToNode(uint16 movie, uint16 node) {
 	if (_state->getViewType() == kCube && !_state->getCameraSkipAnimation()) {
 		float startPitch, startHeading;
 		getMovieLookAt(movie, true, startPitch, startHeading);
-		animateDirectionChange(startPitch, startHeading, 0);
+		animateDirectionChange(startPitch, startHeading, 1.f, 0);
 	}
 	_state->setCameraSkipAnimation(0);
 
@@ -1737,13 +1748,19 @@ void Myst3Engine::playMovieGoToNode(uint16 movie, uint16 node) {
 	}
 
 	setupTransition();
+	if (_state->getViewType() == kCube) {
+		drawTransition(kTransitionFade);
+		float endPitch, endHeading;
+		getMovieLookAt(movie, false, endPitch, endHeading);
+		animateDirectionChange(endPitch, endHeading, s_getFovScale(), 0);
+	}
 }
 
 void Myst3Engine::playMovieFullFrame(uint16 movie) {
 	if (_state->getViewType() == kCube && !_state->getCameraSkipAnimation()) {
 		float startPitch, startHeading;
 		getMovieLookAt(movie, true, startPitch, startHeading);
-		animateDirectionChange(startPitch, startHeading, 0);
+		animateDirectionChange(startPitch, startHeading, 1.f, 0);
 	}
 	_state->setCameraSkipAnimation(0);
 
@@ -1756,6 +1773,14 @@ void Myst3Engine::playMovieFullFrame(uint16 movie) {
 	}
 
 	setupTransition();
+	if (_state->getViewType() == kCube) {
+		// Force the fade.
+		drawTransition(kTransitionFade);
+		// Then restore the FOV scale.
+		float endPitch, endHeading;
+		getMovieLookAt(movie, false, endPitch, endHeading);
+		animateDirectionChange(endPitch, endHeading, s_getFovScale(), 0);
+	}
 }
 
 bool Myst3Engine::inputValidatePressed() {
@@ -1849,6 +1874,7 @@ void Myst3Engine::settingsInitDefaults() {
 	ConfMan.registerDefault("zip_mode", false);
 	ConfMan.registerDefault("subtitles", false);
 	ConfMan.registerDefault("vibrations", true); // Xbox specific
+	ConfMan.registerDefault("fov_increase", false);
 }
 
 void Myst3Engine::settingsLoadToVars() {
