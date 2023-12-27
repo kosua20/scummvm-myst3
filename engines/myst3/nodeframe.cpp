@@ -58,7 +58,7 @@ void NodeFrame::draw() {
 	}
 
 	// Used fragment of texture
-	Common::Rect textureRect = Common::Rect(screenRect.width(), screenRect.height());
+	Common::Rect textureRect = Common::Rect(_faces[0]->_texture->width , _faces[0]->_texture->height);
 
 	// Update the OpenGL texture if needed
 	_faces[0]->uploadTexture();
