@@ -134,7 +134,7 @@ Effect::FaceMask *Effect::loadMask(Common::SeekableReadStream *maskStream) {
 	return mask;
 }
 
-Common::Rect Effect::getUpdateRectForFace(uint face) {
+Common::Rect Effect::getUpdateRectForFace(uint face, uint dstSize) {
 	FaceMask *mask = _facesMasks.getVal(face);
 	if (!mask)
 		error("No mask for face %d", face);
@@ -153,7 +153,11 @@ Common::Rect Effect::getUpdateRectForFace(uint face) {
 			}
 		}
 	}
-
+	int ratio = dstSize / mask->surface->w;
+	rect.left *= ratio;
+	rect.right *= ratio;
+	rect.top *= ratio;
+	rect.bottom *= ratio;
 	return rect;
 }
 

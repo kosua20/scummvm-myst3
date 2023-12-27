@@ -53,7 +53,7 @@ public:
 	virtual void applyForFace(uint face, Graphics::Surface *src, Graphics::Surface *dst) = 0;
 
 	bool hasFace(uint face) { return _facesMasks.contains(face); }
-	Common::Rect getUpdateRectForFace(uint face);
+	Common::Rect getUpdateRectForFace(uint face, uint dstSize);
 
 	// Public and static for use by the debug console
 	static FaceMask *loadMask(Common::SeekableReadStream *maskStream);

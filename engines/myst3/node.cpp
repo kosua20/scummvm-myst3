@@ -285,7 +285,7 @@ void Node::update() {
 		if (effectsForFace == 1) {
 			_effects[0]->applyForFace(faceId, face->_bitmap, face->_finalBitmap);
 
-			face->addTextureDirtyRect(_effects[0]->getUpdateRectForFace(faceId));
+			face->addTextureDirtyRect(_effects[0]->getUpdateRectForFace(faceId, face->_finalBitmap->w));
 		} else if (effectsForFace == 2) {
 			// TODO: Keep the same temp surface to avoid heap fragmentation ?
 			Graphics::Surface *tmp = new Graphics::Surface();
@@ -297,8 +297,8 @@ void Node::update() {
 			tmp->free();
 			delete tmp;
 
-			face->addTextureDirtyRect(_effects[0]->getUpdateRectForFace(faceId));
-			face->addTextureDirtyRect(_effects[1]->getUpdateRectForFace(faceId));
+			face->addTextureDirtyRect(_effects[0]->getUpdateRectForFace(faceId, tmp->w));
+			face->addTextureDirtyRect(_effects[1]->getUpdateRectForFace(faceId, face->_finalBitmap->w));
 		} else {
 			error("Unable to render more than 2 effects per faceId (%d)", effectsForFace);
 		}
