@@ -276,10 +276,11 @@ void WaterEffect::apply(Graphics::Surface *src, Graphics::Surface *dst, Graphics
 		vDisplacement = _verticalDisplacement;
 	}
 
-	uint32 *dstPtr = (uint32 *)dst->getPixels();
-	byte *maskPtr = (byte *)mask->getPixels();
+	byte* maskPtr = (byte*)mask->getPixels();
+	int ratio = dst->w/mask->w;
 
-	for (int y = 0; y < dst->h; y++) {
+	for (int y = 0; y < mask->h; ++y) {
+
 		if (!bottomFace) {
 			uint32 strength = (320 * (9 - y / 64)) / waterEffectAttenuation;
 			if (strength > 4)
@@ -287,7 +288,8 @@ void WaterEffect::apply(Graphics::Surface *src, Graphics::Surface *dst, Graphics
 			hDisplacement = _horizontalDisplacements[strength];
 		}
 
-		for (int x = 0; x < dst->w; x++) {
+		for (int x = 0; x < mask->w; ++x) {
+
 			int8 maskValue = *maskPtr;
 
 			if (maskValue != 0) {
@@ -316,18 +318,26 @@ void WaterEffect::apply(Graphics::Surface *src, Graphics::Surface *dst, Graphics
 					}
 				}
 
-				uint32 srcValue1 = *(uint32 *) src->getBasePtr(x + xOffset, y + yOffset);
-				uint32 srcValue2 = *(uint32 *) src->getBasePtr(x, y);
+				int px = ratio * x;
+				int py = ratio * y;
+				int pxOffset = px + ratio * xOffset;
+				int pyOffset = py + ratio * yOffset;
 
+				for(int dy = 0; dy < ratio; ++dy){
+					for(int dx = 0; dx < ratio; ++dx){
+						uint32 srcValue1 = *(uint32 *)src->getBasePtr(pxOffset + dx, pyOffset + dy);
+						uint32 srcValue2 = *(uint32 *)src->getBasePtr(px + dx, py + dy);
+
+						uint32* dstPtr = (uint32*)dst->getBasePtr(px + dx, py + dy);
 #ifdef SCUMM_BIG_ENDIAN
-				*dstPtr = 0x000000FF | ((0x7F7F7F00 & (srcValue1 >> 1)) + (0x7F7F7F00 & (srcValue2 >> 1)));
+						*dstPtr = 0x000000FF | ((0x7F7F7F00 & (srcValue1 >> 1)) + (0x7F7F7F00 & (srcValue2 >> 1)));
 #else
-				*dstPtr = 0xFF000000 | ((0x007F7F7F & (srcValue1 >> 1)) + (0x007F7F7F & (srcValue2 >> 1)));
+						*dstPtr = 0xFF000000 | ((0x007F7F7F & (srcValue1 >> 1)) + (0x007F7F7F & (srcValue2 >> 1)));
 #endif
+					}
+				}
 			}
-
-			maskPtr++;
-			dstPtr++;
+			++maskPtr;
 		}
 	}
 }
@@ -389,11 +399,11 @@ void LavaEffect::applyForFace(uint face, Graphics::Surface *src, Graphics::Surfa
 	if (!mask)
 		error("No mask for face %d", face);
 
-	uint32 *dstPtr = (uint32 *)dst->getPixels();
 	byte *maskPtr = (byte *)mask->surface->getPixels();
+	int ratio = dst->w / mask->surface->w;
 
-	for (int y = 0; y < dst->h; y++) {
-		for (int x = 0; x < dst->w; x++) {
+	for (int y = 0; y < mask->surface->h; y++) {
+		for (int x = 0; x < mask->surface->w; x++) {
 			uint8 maskValue = *maskPtr;
 
 			if (maskValue != 0) {
@@ -408,6 +418,12 @@ void LavaEffect::applyForFace(uint face, Graphics::Surface *src, Graphics::Surfa
 					xOffset = maxOffset;
 				}
 
+				int px = ratio * x;
+				int py = ratio * y;
+				int pxOffset = px + ratio * xOffset;
+				int pyOffset = py + ratio * yOffset;
+
+
 //				uint32 srcValue1 = *(uint32 *)src->getBasePtr(x + xOffset, y + yOffset);
 //				uint32 srcValue2 = *(uint32 *)src->getBasePtr(x, y);
 //
@@ -415,11 +431,17 @@ void LavaEffect::applyForFace(uint face, Graphics::Surface *src, Graphics::Surfa
 
 				// TODO: The original does "blending" as above, but strangely
 				// this looks more like the original rendering
-				*dstPtr = *(uint32 *)src->getBasePtr(x + xOffset, y + yOffset);
+
+				for(int dy = 0; dy < ratio; ++dy){
+					for(int dx = 0; dx < ratio; ++dx){
+						uint32 *dstPtr = (uint32 *)dst->getBasePtr(px + dx, py + dy);
+						*dstPtr = *(uint32 *)src->getBasePtr(pxOffset + dx, pyOffset + dy);
+					}
+				}
+
 			}
 
 			maskPtr++;
-			dstPtr++;
 		}
 	}
 }
@@ -518,29 +540,37 @@ void MagnetEffect::applyForFace(uint face, Graphics::Surface *src, Graphics::Sur
 }
 
 void MagnetEffect::apply(Graphics::Surface *src, Graphics::Surface *dst, Graphics::Surface *mask, int32 position) {
-	uint32 *dstPtr = (uint32 *)dst->getPixels();
 	byte *maskPtr = (byte *)mask->getPixels();
+	int ratio = dst->w / mask->w;
 
-	for (int y = 0; y < dst->h; y++) {
-		for (int x = 0; x < dst->w; x++) {
+	for (int y = 0; y < mask->h; y++) {
+		for (int x = 0; x < mask->w; x++) {
 			uint8 maskValue = *maskPtr;
 
 			if (maskValue != 0) {
 				int32 displacement = _verticalDisplacement[(maskValue + position) % 256];
-				int32 displacedY = CLIP<int32>(y + displacement, 0, src->h - 1);
+				int32 displacedY = CLIP<int32>(y + displacement, 0, mask->h - 1);
 
-				uint32 srcValue1 = *(uint32 *) src->getBasePtr(x, displacedY);
-				uint32 srcValue2 = *(uint32 *) src->getBasePtr(x, y);
+				int px = ratio * x;
+				int py = ratio * y;
+				int pyOffset = py + ratio * displacedY;
+
+				for(int dy = 0; dy < ratio; ++dy){
+					for(int dx = 0; dx < ratio; ++dx){
+						uint32* dstPtr = (uint32 *)dst->getBasePtr(px + dx, py + dy);
+						uint32 srcValue1 = *(uint32 *) src->getBasePtr(px + dx, pyOffset + dy);
+						uint32 srcValue2 = *(uint32 *) src->getBasePtr(px + dx, py + dy);
 
 #ifdef SCUMM_BIG_ENDIAN
-				*dstPtr = 0x000000FF | ((0x7F7F7F00 & (srcValue1 >> 1)) + (0x7F7F7F00 & (srcValue2 >> 1)));
+						*dstPtr = 0x000000FF | ((0x7F7F7F00 & (srcValue1 >> 1)) + (0x7F7F7F00 & (srcValue2 >> 1)));
 #else
-				*dstPtr = 0xFF000000 | ((0x007F7F7F & (srcValue1 >> 1)) + (0x007F7F7F & (srcValue2 >> 1)));
+						*dstPtr = 0xFF000000 | ((0x007F7F7F & (srcValue1 >> 1)) + (0x007F7F7F & (srcValue2 >> 1)));
 #endif
+					}
+				}
 			}
 
 			maskPtr++;
-			dstPtr++;
 		}
 	}
 }
@@ -771,11 +801,11 @@ void ShieldEffect::applyForFace(uint face, Graphics::Surface *src, Graphics::Sur
 	if (!mask)
 		error("No mask for face %d", face);
 
-	uint32 *dstPtr = (uint32 *)dst->getPixels();
 	byte *maskPtr = (byte *)mask->surface->getPixels();
 
-	for (int y = 0; y < dst->h; y++) {
-		for (int x = 0; x < dst->w; x++) {
+	int ratio = dst->w / mask->surface->w;
+	for (int y = 0; y < mask->surface->h; y++) {
+		for (int x = 0; x < mask->surface->w; x++) {
 			uint8 maskValue = *maskPtr;
 
 			if (maskValue != 0) {
@@ -785,11 +815,19 @@ void ShieldEffect::applyForFace(uint face, Graphics::Surface *src, Graphics::Sur
 					yOffset = maskValue;
 				}
 
-				*dstPtr = *(uint32 *)src->getBasePtr(x, y + yOffset);
+				int px = ratio * x;
+				int py = ratio * y;
+				int pyOffset = py + ratio * yOffset;
+
+				for(int dy = 0; dy < ratio; ++dy){
+					for(int dx = 0; dx < ratio; ++dx){
+						uint32* dstPtr = (uint32 *)dst->getBasePtr(px + dx, py + dy);
+						*dstPtr = *(uint32 *)src->getBasePtr(px + dx, pyOffset + dy);
+					}
+				}
 			}
 
 			maskPtr++;
-			dstPtr++;
 		}
 	}
 }
