@@ -208,7 +208,7 @@ static const Myst3GameDescription gameDescriptions[] = {
 			"myst3",
 			"DVD(Modded)",
 			{
-				{ "RSRC.m3r",    0, "47486141d61c9297954411f70fbf3058", -1 },
+				{ "RSRC.m3r",    0, "8c62830cab2b67005b91271badd4cb86", -1 },
 			},
 			Common::EN_ANY,
 			Common::kPlatformWindows,
