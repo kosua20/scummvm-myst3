@@ -408,8 +408,11 @@ void SpotItemFace::initNotDrawn(uint16 width, uint16 height) {
 	_notDrawnBitmap = new Graphics::Surface();
 	_notDrawnBitmap->create(width, height, Texture::getRGBAPixelFormat());
 
-	for (uint i = 0; i < height; i++) {
-		memcpy(_notDrawnBitmap->getBasePtr(0, i), _face->_bitmap->getBasePtr(_posX, _posY + i), width * 4);
+	uint16 widthCopy  = MIN((uint16)_notDrawnBitmap->w, (uint16)(_face->_bitmap->w - _posX - 1));
+	uint16 heightCopy = MIN((uint16)_notDrawnBitmap->h, (uint16)(_face->_bitmap->h - _posY - 1));
+
+	for (uint i = 0; i < heightCopy; i++) {
+		memcpy(_notDrawnBitmap->getBasePtr(0, i), _face->_bitmap->getBasePtr(_posX, _posY + i), widthCopy * 4);
 	}
 }
 
@@ -422,8 +425,12 @@ Common::Rect SpotItemFace::getFaceRect() const {
 }
 
 void SpotItemFace::draw() {
-	for (int i = 0; i < _bitmap->h; i++) {
-		memcpy(_face->_bitmap->getBasePtr(_posX, _posY + i), _bitmap->getBasePtr(0, i), _bitmap->w * 4);
+
+	uint16 widthCopy  = MIN((uint16)_bitmap->w, (uint16)(_face->_bitmap->w - _posX - 1));
+	uint16 heightCopy = MIN((uint16)_bitmap->h, (uint16)(_face->_bitmap->h - _posY - 1));
+
+	for (int i = 0; i < heightCopy; i++) {
+		memcpy(_face->_bitmap->getBasePtr(_posX, _posY + i), _bitmap->getBasePtr(0, i), widthCopy * 4);
 	}
 
 	_drawn = true;
@@ -431,8 +438,12 @@ void SpotItemFace::draw() {
 }
 
 void SpotItemFace::undraw() {
-	for (int i = 0; i < _notDrawnBitmap->h; i++) {
-		memcpy(_face->_bitmap->getBasePtr(_posX, _posY + i), _notDrawnBitmap->getBasePtr(0, i), _notDrawnBitmap->w * 4);
+
+	uint16 widthCopy  = MIN((uint16)_notDrawnBitmap->w, (uint16)(_face->_bitmap->w - _posX - 1));
+	uint16 heightCopy = MIN((uint16)_notDrawnBitmap->h, (uint16)(_face->_bitmap->h - _posY - 1));
+
+	for (int i = 0; i < heightCopy; i++) {
+		memcpy(_face->_bitmap->getBasePtr(_posX, _posY + i), _notDrawnBitmap->getBasePtr(0, i), widthCopy * 4);
 	}
 
 	_drawn = false;

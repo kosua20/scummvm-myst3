@@ -1508,8 +1508,12 @@ void Puzzles::mainMenu(uint16 action) {
 }
 
 static void copySurfaceRect(Graphics::Surface *dest, const Common::Point &destPoint, const Graphics::Surface *src) {
-	for (uint16 i = 0; i < src->h; i++)
-		memcpy(dest->getBasePtr(destPoint.x, i + destPoint.y), src->getBasePtr(0, i), src->pitch);
+	uint16 widthCopy  = MIN((uint16)src->pitch, (uint16)(dest->pitch - 4*destPoint.x - 4));
+	uint16 heightCopy = MIN((uint16)src->h, (uint16)(dest->h - destPoint.y - 1));
+
+
+	for (uint16 i = 0; i < heightCopy; i++)
+		memcpy(dest->getBasePtr(destPoint.x, i + destPoint.y), src->getBasePtr(0, i), widthCopy);
 }
 
 void Puzzles::projectorLoadBitmap(uint16 bitmap) {
