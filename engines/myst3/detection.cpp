@@ -206,11 +206,9 @@ static const Myst3GameDescription gameDescriptions[] = {
 		// Modded version (upscaled data)
 		{
 			"myst3",
-			"DVD",
+			"DVD(Modded)",
 			{
 				{ "RSRC.m3r",    0, "47486141d61c9297954411f70fbf3058", -1 },
-				{ "ENGLISH.m3t", 0, "1e70f0d52bca3996f38b3b4ee85a6849", -1 },
-				{ "ENGLISH.m3u", 0, "b0c3483eabb0b91062cc38f744d5014b", -1 },
 			},
 			Common::EN_ANY,
 			Common::kPlatformWindows,
