@@ -66,7 +66,7 @@ bool SpellView::init(Screen *tmp_screen, void *view_manager, uint16 x, uint16 y,
 	View::init(x, y, f, p, tm, om);
 
 	SetRect(area.left, area.top, NEWMAGIC_BMP_W, NEWMAGIC_BMP_H + 16);
-	string filename;
+	Common::Path filename;
 
 	config_get_path(config, "newmagic.bmp", filename);
 	background = new U6Bmp();
@@ -431,7 +431,7 @@ GUI_status SpellView::MouseDown(int x, int y, Shared::MouseButton button) {
 	if (button == Shared::BUTTON_RIGHT)
 		return cancel_spell();
 
-	if (selecting_spell_target) { // cast selected spell on the map
+	if (selecting_spell_target && !event_mode) { // cast selected spell on the map
 		if (event->is_looking_at_spellbook()) {
 			close_look();
 			return GUI_YUM;

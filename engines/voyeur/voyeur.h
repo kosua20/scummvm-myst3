@@ -94,6 +94,8 @@ private:
 	void initStamp();
 	void closeStamp();
 
+	void showLogo8Intro();
+
 	/**
 	 * Shows the game ending title animation
 	 */
@@ -210,7 +212,7 @@ public:
 	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave = false) override;
 	void loadGame(int slot);
 
-	void playRL2Video(const Common::String &filename);
+	void playRL2Video(const Common::Path &filename);
 	void doTransitionCard(const Common::String &time, const Common::String &location);
 
 	/**

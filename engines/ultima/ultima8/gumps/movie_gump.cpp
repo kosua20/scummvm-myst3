@@ -26,6 +26,7 @@
 #include "ultima/ultima8/graphics/gump_shape_archive.h"
 #include "ultima/ultima8/graphics/shape.h"
 #include "ultima/ultima8/graphics/shape_frame.h"
+#include "ultima/ultima8/graphics/palette.h"
 #include "ultima/ultima8/graphics/palette_manager.h"
 #include "ultima/ultima8/graphics/texture.h"
 #include "ultima/ultima8/graphics/fade_to_modal_process.h"
@@ -79,11 +80,11 @@ static Std::string _fixCrusaderMovieName(const Std::string &s) {
 static Common::SeekableReadStream *_tryLoadCruMovieFile(const Std::string &filename, const char *extn) {
 	const Std::string path = Std::string::format("flics/%s.%s", filename.c_str(), extn);
 	FileSystem *filesys = FileSystem::get_instance();
-	Common::SeekableReadStream *rs = filesys->ReadFile(path);
+	Common::SeekableReadStream *rs = filesys->ReadFile(path.c_str());
 	if (!rs) {
 		// Try with a "0" in the name
 		const Std::string adjustedfn = Std::string::format("flics/0%s.%s", filename.c_str(), extn);
-		rs = filesys->ReadFile(adjustedfn);
+		rs = filesys->ReadFile(adjustedfn.c_str());
 		if (!rs)
 			return nullptr;
 	}
@@ -379,7 +380,7 @@ uint32 MovieGump::I_playMovieOverlay(const uint8 *args,
 		const Palette *pal = palman->getPalette(PaletteManager::Pal_Game);
 		assert(pal);
 
-		CruMovieViewer(name, x, y, pal->_palette, nullptr, 52);
+		CruMovieViewer(name, x, y, pal->data(), nullptr, 52);
 	}
 
 	return 0;

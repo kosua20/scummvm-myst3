@@ -26,6 +26,7 @@
 #include "common/file.h"
 #include "common/textconsole.h"
 #include "graphics/managed_surface.h"
+#include "graphics/palette.h"
 #include "image/bmp.h"
 #include "ultima/nuvie/screen/screen.h"
 
@@ -56,14 +57,14 @@ int SDL_FillRect(Graphics::ManagedSurface *surf, const Common::Rect *rect, uint 
 	return 0;
 }
 
-Graphics::ManagedSurface *SDL_LoadBMP(const char *filename) {
+Graphics::ManagedSurface *SDL_LoadBMP(const Common::Path &filename) {
 	Common::File f;
 	Image::BitmapDecoder decoder;
 
 	if (!f.open(filename))
-		error("Could not open file - %s", filename);
+		error("Could not open file - %s", filename.toString().c_str());
 	if (!decoder.loadStream(f))
-		error("Could not load bitmap - %s", filename);
+		error("Could not load bitmap - %s", filename.toString().c_str());
 
 	const Graphics::Surface *src = decoder.getSurface();
 	Screen *const screen = Game::get_game()->get_screen();
@@ -71,7 +72,8 @@ Graphics::ManagedSurface *SDL_LoadBMP(const char *filename) {
 	Graphics::ManagedSurface *const screenSurface = screen->get_sdl_surface();
 	assert(screenSurface);
 	Graphics::ManagedSurface *dest = new Graphics::ManagedSurface(src->w, src->h, screenSurface->format);
-	dest->blitFrom(*src, decoder.getPalette());
+	Graphics::Palette p(decoder.getPalette(), 256);
+	dest->blitFrom(*src, &p);
 
 	return dest;
 }

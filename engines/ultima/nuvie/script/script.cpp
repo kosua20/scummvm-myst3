@@ -49,6 +49,7 @@
 #include "ultima/nuvie/core/magic.h"
 #include "ultima/nuvie/files/tmx_map.h"
 #include "ultima/nuvie/files/u6_lib_n.h"
+#include "backends/keymapper/keymapper.h"
 
 namespace Ultima {
 namespace Nuvie {
@@ -881,8 +882,10 @@ Script::~Script() {
 }
 
 bool Script::init() {
-	Std::string dir, path;
-	config->value("config/datadir", dir, "");
+	Std::string tmp;
+	Common::Path dir, path;
+	config->value("config/datadir", tmp, "");
+	dir = Common::Path(tmp);
 	build_path(dir, "scripts", path);
 	dir = path;
 
@@ -901,7 +904,7 @@ bool Script::init() {
 
 	if (run_script(init_str.c_str()) == false) {
 		Std::string errorStr = "Loading ";
-		errorStr.append(path);
+		errorStr.append(path.toString());
 		ConsoleAddError(errorStr);
 		return false;
 	}
@@ -940,7 +943,13 @@ bool Script::play_cutscene(const char *script_file) {
 
 	ConsoleHide();
 
-	return run_lua_file(script_file_path.c_str());
+	// FIXME: For now we disable the keymapper during cutscenes so input works correctly
+	// (e.g. for character name entry or skipping the intro)
+
+	g_system->getEventManager()->getKeymapper()->setEnabled(false);
+	bool retVal = run_lua_file(script_file_path.c_str());
+	g_system->getEventManager()->getKeymapper()->setEnabled(true);
+	return retVal;
 }
 
 MovementStatus Script::call_player_before_move_action(sint16 *rel_x, sint16 *rel_y) {
@@ -1299,7 +1308,7 @@ bool Script::call_actor_use_effect(Obj *effect_obj, Actor *actor) {
 	return call_function("actor_use_effect", 2, 0);
 }
 
-bool Script::call_can_get_obj_override(Obj *obj) {
+bool Script::call_can_get_obj_override(Obj *obj) const {
 	lua_getglobal(L, "can_get_obj_override");
 	nscript_obj_new(L, obj);
 
@@ -1340,7 +1349,7 @@ bool Script::call_is_ranged_select(UseCodeType operation) {
 	return lua_toboolean(L, -1);
 }
 
-bool Script::call_function(const char *func_name, int num_args, int num_return, bool print_stacktrace) {
+bool Script::call_function(const char *func_name, int num_args, int num_return, bool print_stacktrace) const{
 	int start_idx = lua_gettop(L);
 	int error_index = 0;
 
@@ -1382,19 +1391,20 @@ ScriptThread *Script::call_function_in_thread(const char *function_name) {
 }
 
 bool Script::run_lua_file(const char *filename) {
-	Std::string dir, path;
-	Script::get_script()->get_config()->value("config/datadir", dir, "");
+	Std::string tmp;
+	Script::get_script()->get_config()->value("config/datadir", tmp, "");
 
+	Common::Path dir(tmp), path;
 	build_path(dir, "scripts", path);
 	dir = path;
 	build_path(dir, filename, path);
 
-	if (luaL_loadfile(L, path.c_str()) != 0) {
-		DEBUG(0, LEVEL_ERROR, "loading script file %s", path.c_str());
+	if (luaL_loadfile(L, path.toString(Common::Path::kNativeSeparator).c_str()) != 0) {
+		DEBUG(0, LEVEL_ERROR, "loading script file %s", path.toString(Common::Path::kNativeSeparator).c_str());
 		return false;
 	}
 
-	return call_function(path.c_str(), 0, 0);
+	return call_function(path.toString(Common::Path::kNativeSeparator).c_str(), 0, 0);
 }
 
 bool Script::call_moonstone_set_loc(uint8 phase, MapCoord location) {
@@ -2344,16 +2354,18 @@ static int nscript_display_prompt(lua_State *L) {
  */
 static int nscript_load(lua_State *L) {
 	const char *file = luaL_checkstring(L, 1);
-	string dir;
-	string path;
+	string tmp;
+	Common::Path dir;
+	Common::Path path;
 
-	Script::get_script()->get_config()->value("config/datadir", dir, "");
+	Script::get_script()->get_config()->value("config/datadir", tmp, "");
+	dir = Common::Path(tmp);
 
 	build_path(dir, "scripts", path);
 	dir = path;
 	build_path(dir, file, path);
 
-	if (luaL_loadfile(L, path.c_str()) == LUA_ERRFILE) {
+	if (luaL_loadfile(L, path.toString(Common::Path::kNativeSeparator).c_str()) == LUA_ERRFILE) {
 		lua_pop(L, 1);
 		return 0;
 	}
@@ -2985,6 +2997,7 @@ static int nscript_map_enable_temp_actor_cleaning(lua_State *L) {
 Check map location for water
 @function map_is_water
 @tparam MapCoord|x,y,z location
+@tparam bool[opt] ignore objects, defaults to false
 @treturn bool true if the map at location is a water tile otherwise false
 @within map
  */
@@ -2993,10 +3006,16 @@ static int nscript_map_is_water(lua_State *L) {
 
 	uint16 x, y;
 	uint8 z;
+	bool ignoreObjects;
+	int idx;
+
 	if (nscript_get_location_from_args(L, &x, &y, &z, 1) == false)
 		return 0;
 
-	lua_pushboolean(L, map->is_water(x, y, z));
+	idx = lua_istable(L, 1) ? 2 : 4;
+	ignoreObjects = lua_toboolean(L, idx);
+
+	lua_pushboolean(L, map->is_water(x, y, z, ignoreObjects));
 
 	return 1;
 }
@@ -3146,14 +3165,15 @@ static int nscript_map_line_test(lua_State *L) {
 
 /***
 Returns the first point on a line between x,y and x1, y1 where a missile boundary tile is crossed
-If no boundary tiles are crossed on the line then x1, y1 are returned
+Additionally returns the point checked before the hit
+If no boundary tiles are crossed on the line then x1, y1 are returned for both points
 @function map_line_hit_check
 @int x
 @int y
 @int x1
 @int y1
 @int z
-@treturn int,int an x,y coord
+@treturn int,int,int,int x,y coords
 @within map
  */
 static int nscript_map_line_hit_check(lua_State *L) {
@@ -3171,12 +3191,17 @@ static int nscript_map_line_hit_check(lua_State *L) {
 	if (map->lineTest(x, y, x1, y1, level, LT_HitMissileBoundary, result, 0, nullptr, true)) {
 		lua_pushinteger(L, result.hit_x);
 		lua_pushinteger(L, result.hit_y);
+		lua_pushinteger(L, result.pre_hit_x);
+		lua_pushinteger(L, result.pre_hit_y);
 	} else {
+		lua_pushinteger(L, x1);
+		lua_pushinteger(L, y1);
+		// no collision, return starting coordinates again instead of pre_hit_x/y
 		lua_pushinteger(L, x1);
 		lua_pushinteger(L, y1);
 	}
 
-	return 2;
+	return 4;
 }
 
 /***
@@ -3207,19 +3232,19 @@ static int nscript_tileset_export(lua_State *L) {
 		overwriteFile = (bool)lua_toboolean(L, 1);
 	}
 
-	Std::string path;
+	Common::Path path;
 	path = "data";
 	build_path(path, "images", path);
 	build_path(path, "tiles", path);
 	build_path(path, get_game_tag(game->get_game_type()), path);
 
-	if (!directory_exists(path.c_str())) {
+	if (!directory_exists(path)) {
 		mkdir_recursive(path, 0700);
 	}
 
 	build_path(path, "custom_tiles.bmp", path);
 
-	if (!overwriteFile && file_exists(path.c_str())) {
+	if (!overwriteFile && file_exists(path)) {
 		lua_pushboolean(L, false);
 	} else {
 		game->get_tile_manager()->exportTilesetToBmpFile(path, false);
@@ -4582,7 +4607,7 @@ static int nscript_load_text_from_lzc(lua_State *L) {
 	Std::string filename(lua_tostring(L, 1));
 	U6Lib_n lib_n;
 
-	Std::string path;
+	Common::Path path;
 
 	config_get_path(Game::get_game()->get_config(), filename, path);
 

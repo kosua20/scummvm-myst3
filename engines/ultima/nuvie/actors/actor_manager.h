@@ -78,9 +78,35 @@ public:
 	ActorList *filter_alignment(ActorList *list, ActorAlignment align);
 	ActorList *filter_party(ActorList *list);
 
-	Actor *get_actor(uint8 actor_num);
+	Actor *get_actor(uint8 actor_num) const;
 	Actor *get_actor(uint16 x, uint16 y, uint8 z,  bool inc_surrounding_objs = true, Actor *excluded_actor = nullptr);
 	Actor *get_actor_holding_obj(Obj *obj);
+
+	private:
+	Actor *findActorAtImpl(uint16 x, uint16 y, uint8 z, bool(*predicateWrapper)(void *, const Actor *), bool incDoubleTile, bool incSurroundingObjs, void *predicate) const;
+
+	public:
+	/**
+	 * @brief Find first actor at location for which predicate function returns true
+	 * @param x world coordinate
+	 * @param y world coordinate
+	 * @param z level
+	 * @param predicate predicate function/lambda of the form: bool f(const Actor*)
+	 * @param incDoubleTile include all tiles of double width/height actors
+	 * @param incSurroundingObjs include surrounding actor objects
+	 * @return pointer to actor or nullptr
+	 */
+	template<typename F>
+	Actor *findActorAt(uint16 x, uint16 y, uint8 z, F predicate, bool incDoubleTile = true, bool incSurroundingObjs = true) {
+		// This is a template so it can take lambdas.
+		// To keep the implementation out of the header, the type of the passed lambda/function
+		// is hidden inside a wrapping lambda, which is then passed as a function pointer.
+		// TODO: Use a class for this.
+		auto predicateWrapper = +[](void *wrappedPredicate, const Actor *a) -> bool {
+			return (*(F*)wrappedPredicate)(a);
+		};
+		return findActorAtImpl(x, y, z, predicateWrapper, incDoubleTile, incSurroundingObjs, &predicate);
+	}
 
 	Actor *get_avatar();
 
@@ -135,10 +161,10 @@ protected:
 private:
 
 	bool loadCustomTiles(nuvie_game_t game_type);
-	void loadNPCTiles(const Std::string &datadir);
-	void loadAvatarTiles(const Std::string &datadir);
-	void loadCustomBaseTiles(const Std::string &datadir);
-	Std::set<Std::string> getCustomTileFilenames(const Std::string &datadir, const Std::string &filenamePrefix);
+	void loadNPCTiles(const Common::Path &datadir);
+	void loadAvatarTiles(const Common::Path &datadir);
+	void loadCustomBaseTiles(const Common::Path &datadir);
+	Std::set<Std::string> getCustomTileFilenames(const Common::Path &datadir, const Std::string &filenamePrefix);
 };
 
 } // End of namespace Nuvie

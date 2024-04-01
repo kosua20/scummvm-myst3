@@ -51,7 +51,7 @@ Common::Platform Sword2Engine::_platform;
 
 Sword2Engine::Sword2Engine(OSystem *syst, const ADGameDescription *gameDesc) : Engine(syst), _rnd("sword2") {
 	// Add default file directories
-	const Common::FSNode gameDataDir(ConfMan.get("path"));
+	const Common::FSNode gameDataDir(ConfMan.getPath("path"));
 	SearchMan.addSubDirectoryMatching(gameDataDir, "clusters");
 	SearchMan.addSubDirectoryMatching(gameDataDir, "sword2");
 	SearchMan.addSubDirectoryMatching(gameDataDir, "video");
@@ -89,6 +89,11 @@ Sword2Engine::Sword2Engine(OSystem *syst, const ADGameDescription *gameDesc) : E
 }
 
 Sword2Engine::~Sword2Engine() {
+	// Unpause the game now, or it will be done automatically when the
+	// game engine is half-deleted, causing it to crash.
+	if (isPaused())
+		_gamePauseToken.clear();
+
 	//_debugger is deleted by Engine
 	delete _sound;
 	delete _fontRenderer;

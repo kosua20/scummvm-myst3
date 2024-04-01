@@ -28,9 +28,9 @@
 
 #include "scumm/actor.h"
 #include "scumm/charset.h"
-#include "scumm/gfx_mac.h"
 #include "scumm/imuse_digi/dimuse_engine.h"
 #include "scumm/imuse/imuse.h"
+#include "scumm/macgui/macgui.h"
 #include "scumm/players/player_towns.h"
 #include "scumm/he/intern_he.h"
 #include "scumm/object.h"
@@ -69,7 +69,7 @@ struct SaveInfoSection {
 
 #define SaveInfoSectionSize (4+4+4 + 4+4 + 4+2)
 
-#define CURRENT_VER 112
+#define CURRENT_VER 117
 #define INFOSECTION_VERSION 2
 
 #pragma mark -
@@ -1530,11 +1530,15 @@ void ScummEngine::saveLoadWithSerializer(Common::Serializer &s) {
 			_cursor.height = 15;
 			_cursor.hotspotX = 7;
 			_cursor.hotspotY = 7;
-		} else if (_game.id == GID_LOOM && _game.platform == Common::kPlatformMacintosh) {
+		} else if (_game.id == GID_LOOM) {
 			_cursor.width = 16;
 			_cursor.height = 16;
-			_cursor.hotspotX = 3;
-			_cursor.hotspotY = 2;
+			if (_game.platform == Common::kPlatformMacintosh) {
+				_cursor.hotspotX = 3;
+				_cursor.hotspotY = 2;
+			} else { // DOS, Amiga, FM-Towns and PCE
+				_cursor.hotspotX = _cursor.hotspotY = 0;
+			}
 		}
 	}
 
@@ -2053,6 +2057,9 @@ void ScummEngine::saveLoadWithSerializer(Common::Serializer &s) {
 		_musicEngine->saveLoadWithSerializer(s);
 	}
 
+	// At least from now on, VAR_SOUNDCARD will have a reliable value.
+	if (s.isLoading() && (_game.heversion < 70 && _game.version <= 6))
+		setSoundCardVarToCurrentConfig();
 
 	//
 	// Save/load the charset renderer state

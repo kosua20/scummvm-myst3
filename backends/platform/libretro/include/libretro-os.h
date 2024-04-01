@@ -24,7 +24,7 @@
 #include "common/mutex.h"
 #include "common/list.h"
 #include "common/events.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 #include "graphics/surface.h"
 
 #define BASE_CURSOR_SPEED 4
@@ -81,7 +81,8 @@ private:
 	uint8 _cursorStatus;
 	Common::String s_systemDir;
 	Common::String s_saveDir;
-	static Common::List<Common::Event> _events;
+	Common::String s_playlistDir;
+	Common::List<Common::Event> _events;
 
 public:
 	Audio::MixerImpl *_mixer;
@@ -104,7 +105,6 @@ public:
 	~OSystem_libretro(void) override;
 	void initBackend(void) override;
 	void engineInit(void) override;
-	void engineDone(void) override;
 	bool hasFeature(Feature f) override;
 	void setFeatureState(Feature f, bool enable) override;
 	bool getFeatureState(Feature f) override;
@@ -113,6 +113,7 @@ public:
 	void quit() override {}
 private:
 	bool checkPathSetting(const char *setting, Common::String const &defaultPath, bool isDirectory = true);
+	void setLibretroDir(const char * path, Common::String &var);
 
 	/* Graphics */
 public:
@@ -144,6 +145,8 @@ public:
 	PaletteManager *getPaletteManager() override { return this; }
 	Graphics::Surface *lockScreen() override { return &_gameScreen; }
 	void unlockScreen() override {}
+	GUI::OptionsContainerWidget *buildBackendOptionsWidget(GUI::GuiObject *boss, const Common::String &name, const Common::String &target) const override;
+	void applyBackendSettings() override;
 protected:
 	void setPalette(const byte *colors, uint start, uint num) override;
 	void grabPalette(byte *colors, uint start, uint num) const override;
@@ -161,17 +164,19 @@ public:
 	/* Utils */
 	void getTimeAndDate(TimeDate &t, bool skipRecord) const override;
 	Audio::Mixer *getMixer(void) override;
-	Common::String getDefaultConfigFileName(void) override;
+	Common::Path getDefaultConfigFileName(void) override;
 	void logMessage(LogMessageType::Type type, const char *message) override;
 	int testGame(const char *filedata, bool autodetect);
-	void addSysArchivesToSearchSet(Common::SearchSet &s, int priority = 0) override {}
+	void addSysArchivesToSearchSet(Common::SearchSet &s, int priority = 0) override;
+	const char * const *buildHelpDialogData() override;
+	Common::String getSaveDir(void);
 private:
 	bool parseGameName(const Common::String &gameName, Common::String &engineId, Common::String &gameId);
 
 	/* Inputs */
 public:
 	void processInputs(void);
-	static void processKeyEvent(bool down, unsigned keycode, uint32 character, uint16 key_modifiers);
+	void processKeyEvent(bool down, unsigned keycode, uint32 character, uint16 key_modifiers);
 	void setShakePos(int shakeXOffset, int shakeYOffset) override {}
 private:
 	void updateMouseXY(float deltaAcc, float * cumulativeXYAcc, int doing_x);

@@ -29,7 +29,6 @@
 #include "common/savefile.h"
 #include "engines/util.h"
 #include "engines/dialogs.h"
-#include "graphics/palette.h"
 
 #include "tetraedge/game/amerzone_game.h"
 #include "tetraedge/game/syberia_game.h"
@@ -207,7 +206,7 @@ void TetraedgeEngine::closeGameDialogs() {
 }
 
 void TetraedgeEngine::configureSearchPaths() {
-	const Common::FSNode gameDataDir(ConfMan.get("path"));
+	const Common::FSNode gameDataDir(ConfMan.getPath("path"));
 	if (_gameDescription->platform != Common::kPlatformIOS)
 		SearchMan.addSubDirectoryMatching(gameDataDir, "Resources", 0, 5);
 }

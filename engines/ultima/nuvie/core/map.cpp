@@ -359,7 +359,7 @@ const char *Map::look(uint16 x, uint16 y, uint8 level) {
 
 
 bool Map::loadMap(TileManager *tm, ObjManager *om) {
-	Std::string filename;
+	Common::Path filename;
 	NuvieIOFileRead map_file;
 	NuvieIOFileRead chunks_file;
 
@@ -450,12 +450,14 @@ bool Map::has_roof(uint16 x, uint16 y, uint8 level) const {
 	return false;
 }
 
-Std::string Map::getRoofDataFilename() const {
-	Std::string game_type, datadir, path, mapfile;
+Common::Path Map::getRoofDataFilename() const {
+	Std::string game_type, tmp;
+	Common::Path datadir, path, mapfile;
 
-	config->value("config/datadir", datadir, "");
+	config->value("config/datadir", tmp, "");
 	config->value("config/GameID", game_type);
 
+	datadir = Common::Path(tmp);
 	build_path(datadir, "maps", path);
 	datadir = path;
 	build_path(datadir, game_type, path);
@@ -465,12 +467,15 @@ Std::string Map::getRoofDataFilename() const {
 	return mapfile;
 }
 
-Std::string Map::getRoofTilesetFilename() const {
-	Std::string datadir;
-	Std::string imagefile;
-	Std::string path;
+Common::Path Map::getRoofTilesetFilename() const {
+	Std::string tmp;
+	Common::Path datadir;
+	Common::Path imagefile;
+	Common::Path path;
 
-	config->value("config/datadir", datadir, "");
+	config->value("config/datadir", tmp, "");
+
+	datadir = Common::Path(tmp);
 	build_path(datadir, "images", path);
 	datadir = path;
 	build_path(datadir, "roof_tiles.bmp", imagefile);
@@ -750,6 +755,8 @@ bool Map::lineTest(int start_x, int start_y, int end_x, int end_y, uint8 level,
 	uint32 count;
 	int xtile = start_x;
 	int ytile = start_y;
+	int xtile_prev = xtile;
+	int ytile_prev = ytile;
 
 
 	if (deltax >= deltay) {
@@ -786,11 +793,16 @@ bool Map::lineTest(int start_x, int start_y, int end_x, int end_y, uint8 level,
 	for (uint32 i = 0; i < count; i++) {
 		//  only test for collision if tile coordinates have changed
 		if ((scale_factor_log2 == 0 || x >> scale_factor_log2 != xtile || y >> scale_factor_log2 != ytile)) {
+			xtile_prev = xtile;
+			ytile_prev = ytile;
 			xtile = x >> scale_factor_log2; //  scale back down to tile
 			ytile = y >> scale_factor_log2; //  space if necessary
 			//  test the current location
-			if ((i >= skip) && (testIntersection(xtile, ytile, level, flags, Result, excluded_obj) == true))
+			if ((i >= skip) && (testIntersection(xtile, ytile, level, flags, Result, excluded_obj) == true)) {
+				Result.pre_hit_x = xtile_prev;
+				Result.pre_hit_y = ytile_prev;
 				return true;
+			}
 		}
 
 		if (d < 0) {

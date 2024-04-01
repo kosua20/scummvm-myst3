@@ -519,33 +519,18 @@ ActorList *ActorManager::get_actor_list() {
 	return _actors;
 }
 
-Actor *ActorManager::get_actor(uint8 actor_num) {
+Actor *ActorManager::get_actor(uint8 actor_num) const {
 	return actors[actor_num];
 }
 
 Actor *ActorManager::get_actor(uint16 x, uint16 y, uint8 z, bool inc_surrounding_objs, Actor *excluded_actor) {
-	uint16 i;
-
-	for (i = 0; i < ACTORMANAGER_MAX_ACTORS; i++) {
-		if (actors[i]->x == x && actors[i]->y == y && actors[i]->z == z && actors[i] != excluded_actor)
-			return actors[i];
-	}
-
-	if (inc_surrounding_objs) {
-		Obj *obj = obj_manager->get_obj(x, y, z);
-		if (obj && obj->is_actor_obj()) {
-			if (obj->obj_n == OBJ_U6_SILVER_SERPENT && Game::get_game()->get_game_type() == NUVIE_GAME_U6)
-				return actors[obj->qty];
-
-			return actors[obj->quality];
-		}
-
-		return get_multi_tile_actor(x, y, z);
-	}
-
-	return nullptr;
+	// Note: Semantics have changed slightly since moving to findActorAt():
+	// excluded_actor is now excluded when looking for multi-tile actors and surrounding objects
+	return findActorAt(x, y, z, [=](const Actor *a) {return a != excluded_actor;}, inc_surrounding_objs, inc_surrounding_objs);
 }
 
+#if 0
+// This was used as a helper method by get_actor() before it was changed to use findActorAt()
 Actor *ActorManager::get_multi_tile_actor(uint16 x, uint16 y, uint8 z) {
 	Actor *actor = get_actor(x + 1, y + 1, z, false); //search for 2x2 tile actor.
 	if (actor) {
@@ -571,6 +556,7 @@ Actor *ActorManager::get_multi_tile_actor(uint16 x, uint16 y, uint8 z) {
 
 	return nullptr;
 }
+#endif
 
 Actor *ActorManager::get_avatar() {
 	return get_actor(ACTOR_AVATAR_ID_N);
@@ -676,7 +662,7 @@ void ActorManager::moveActors() {
 }
 
 bool ActorManager::loadActorSchedules() {
-	Std::string filename;
+	Common::Path filename;
 	NuvieIOFileRead schedule;
 	uint16 i;
 	uint16 total_schedules;
@@ -1091,8 +1077,8 @@ bool ActorManager::loadCustomTiles(nuvie_game_t game_type) {
 		return false;
 	}
 
-	Std::string datadir = "images";
-	Std::string path;
+	Common::Path datadir = "images";
+	Common::Path path;
 
 	build_path(datadir, "tiles", path);
 	datadir = path;
@@ -1108,16 +1094,16 @@ bool ActorManager::loadCustomTiles(nuvie_game_t game_type) {
 	return true;
 }
 
-void ActorManager::loadCustomBaseTiles(const Std::string &datadir) {
-	Std::string imagefile;
+void ActorManager::loadCustomBaseTiles(const Common::Path &datadir) {
+	Common::Path imagefile;
 	build_path(datadir, "custom_tiles.bmp", imagefile);
 
 	//attempt to load custom base tiles if the file exists.
 	tile_manager->loadCustomTiles(Game::get_game()->get_data_file_path(imagefile), true, true, 0);
 }
 
-void ActorManager::loadAvatarTiles(const Std::string &datadir) {
-	Std::string imagefile;
+void ActorManager::loadAvatarTiles(const Common::Path &datadir) {
+	Common::Path imagefile;
 
 	uint8 avatar_portrait = Game::get_game()->get_portrait()->get_avatar_portrait_num();
 
@@ -1134,7 +1120,7 @@ void ActorManager::loadAvatarTiles(const Std::string &datadir) {
 			num_str = filename.substr(11, 4);
 			uint16 obj_n = (uint16)strtol(num_str.c_str(), nullptr, 10);
 
-			Std::string path;
+			Common::Path path;
 			build_path(datadir, filename, path);
 			imagefile = Game::get_game()->get_data_file_path(path);
 			Tile *start_tile = tile_manager->loadCustomTiles(imagefile, false, true, actors[1]->get_tile_num());
@@ -1146,8 +1132,8 @@ void ActorManager::loadAvatarTiles(const Std::string &datadir) {
 	return;
 }
 
-void ActorManager::loadNPCTiles(const Std::string &datadir) {
-	Std::string imagefile;
+void ActorManager::loadNPCTiles(const Common::Path &datadir) {
+	Common::Path imagefile;
 
 	Std::set<Std::string> files = getCustomTileFilenames(datadir, "actor_");
 
@@ -1161,7 +1147,7 @@ void ActorManager::loadNPCTiles(const Std::string &datadir) {
 		num_str = filename.substr(10, 4);
 		uint16 obj_n = (uint16)strtol(num_str.c_str(), nullptr, 10);
 
-		Std::string path;
+		Common::Path path;
 		build_path(datadir, filename, path);
 		imagefile = Game::get_game()->get_data_file_path(path);
 		Tile *start_tile = tile_manager->loadCustomTiles(imagefile, false, true, actors[actor_num]->get_tile_num());
@@ -1172,22 +1158,52 @@ void ActorManager::loadNPCTiles(const Std::string &datadir) {
 	return;
 }
 
-Std::set<Std::string> ActorManager::getCustomTileFilenames(const Std::string &datadir, const Std::string &filenamePrefix) {
+Std::set<Std::string> ActorManager::getCustomTileFilenames(const Common::Path &datadir, const Std::string &filenamePrefix) {
 	NuvieFileList filelistDataDir;
 	NuvieFileList filelistSaveGameDir;
-	Std::string path;
+	Common::Path path;
 
-	build_path(GUI::get_gui()->get_data_dir(), datadir, path);
-	filelistDataDir.open(path.c_str(), filenamePrefix.c_str(), NUVIE_SORT_NAME_ASC);
+	path = GUI::get_gui()->get_data_dir().joinInPlace(datadir);
+	filelistDataDir.open(path, filenamePrefix.c_str(), NUVIE_SORT_NAME_ASC);
 
 	path = "data";
-	build_path(path, datadir, path);
-	filelistSaveGameDir.open(path.c_str(), filenamePrefix.c_str(), NUVIE_SORT_NAME_ASC);
+	path.joinInPlace(datadir);
+	filelistSaveGameDir.open(path, filenamePrefix.c_str(), NUVIE_SORT_NAME_ASC);
 
 	Std::set<Std::string> files = filelistSaveGameDir.get_filenames();
 	Std::set<Std::string> dataFiles = filelistDataDir.get_filenames();
 	files.insert(dataFiles.begin(), dataFiles.end());
 	return files;
+}
+
+Actor *ActorManager::findActorAtImpl(uint16 x, uint16 y, uint8 z, bool (*predicateWrapper)(void *predicate, const Actor *), bool incDoubleTile, bool incSurroundingObjs, void *predicate) const {
+
+	for (uint16 i = 0; i < ACTORMANAGER_MAX_ACTORS; ++i)
+		// Exclude surrounding objects here since we can get them directly via the AVL tree instead of going through earch actor's surrounding objects list
+		if (actors[i] && actors[i]->doesOccupyLocation(x, y, z, incDoubleTile, false) && predicateWrapper(predicate, actors[i]))
+			return actors[i];
+
+	if (incSurroundingObjs) {
+		// Look for actor objects (e.g. Silver Serpent body, Hydra parts, etc.)
+		const U6LList *const obj_list = obj_manager->get_obj_list(x, y, z);
+
+		if (obj_list) {
+			for (const U6Link *link = obj_list->start(); link != nullptr; link = link->next) {
+				const Obj *obj = (Obj *)link->data;
+
+				if (obj->is_actor_obj()) {
+					const uint8 actorNum = obj->obj_n == OBJ_U6_SILVER_SERPENT
+							&& Game::get_game()->get_game_type() == NUVIE_GAME_U6 ? obj->qty : obj->quality;
+					Actor *actor = get_actor(actorNum);
+					if (actor && predicateWrapper(predicate, actor))
+						return actor;
+				}
+			}
+		}
+	}
+
+	// No match
+	return nullptr;
 }
 
 } // End of namespace Nuvie

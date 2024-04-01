@@ -29,7 +29,7 @@
 #include "engines/util.h"
 #include "graphics/fonts/ttf.h"
 #include "graphics/fontman.h"
-#include "graphics/palette.h"
+#include "graphics/paletteman.h"
 #include "graphics/scaler.h"
 #include "image/pict.h"
 
@@ -217,7 +217,7 @@ void MystGraphics::applyImagePatches(uint16 id, const MohawkSurface *mhkSurface)
 		Graphics::Surface fixSurf;
 		fixSurf.create(15, 11, Graphics::PixelFormat::createFormatCLUT8());
 		fixSurf.copyRectToSurface(markerSwitchInstructionsFixPic, fixSurf.w, 0, 0, fixSurf.w, fixSurf.h);
-		fixSurf.convertToInPlace(_pixelFormat, markerSwitchInstructionsFixPal, 0, sizeof(markerSwitchInstructionsFixPal) / 3);
+		fixSurf.convertToInPlace(_pixelFormat, markerSwitchInstructionsFixPal, sizeof(markerSwitchInstructionsFixPal) / 3);
 
 		mhkSurface->getSurface()->copyRectToSurface(fixSurf, 171, 208, Common::Rect(fixSurf.w, fixSurf.h));
 

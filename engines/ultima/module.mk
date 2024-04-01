@@ -195,7 +195,6 @@ MODULE_OBJS += \
 	ultima4/gfx/image.o \
 	ultima4/gfx/imageloader.o \
 	ultima4/gfx/imageloader_fmtowns.o \
-	ultima4/gfx/imageloader_png.o \
 	ultima4/gfx/imageloader_u4.o \
 	ultima4/gfx/imagemgr.o \
 	ultima4/gfx/scale.o \
@@ -417,7 +416,6 @@ MODULE_OBJS += \
 	ultima8/convert/u8/convert_shape_u8.o \
 	ultima8/convert/crusader/convert_shape_crusader.o \
 	ultima8/filesys/archive.o \
-	ultima8/filesys/archive_file.o \
 	ultima8/filesys/file_system.o \
 	ultima8/filesys/flex_file.o \
 	ultima8/filesys/raw_archive.o \
