@@ -544,9 +544,9 @@ void MagnetEffect::applyForFace(uint face, Graphics::Surface *src, Graphics::Sur
 }
 
 void MagnetEffect::apply(Graphics::Surface *src, Graphics::Surface *dst, Graphics::Surface *mask, int32 position) {
+
 	byte *maskPtr = (byte *)mask->getPixels();
 	int ratio = dst->w / mask->w;
-
 	for (int y = 0; y < mask->h; y++) {
 		for (int x = 0; x < mask->w; x++) {
 			uint8 maskValue = *maskPtr;
@@ -557,12 +557,12 @@ void MagnetEffect::apply(Graphics::Surface *src, Graphics::Surface *dst, Graphic
 
 				int px = ratio * x;
 				int py = ratio * y;
-				int pyOffset = py + ratio * displacedY;
+				int pDisplacedY = ratio * displacedY;
 
 				for(int dy = 0; dy < ratio; ++dy){
 					for(int dx = 0; dx < ratio; ++dx){
 						uint32* dstPtr = (uint32 *)dst->getBasePtr(px + dx, py + dy);
-						uint32 srcValue1 = *(uint32 *) src->getBasePtr(px + dx, pyOffset + dy);
+						uint32 srcValue1 = *(uint32 *)src->getBasePtr(px + dx, pDisplacedY + dy);
 						uint32 srcValue2 = *(uint32 *) src->getBasePtr(px + dx, py + dy);
 
 #ifdef SCUMM_BIG_ENDIAN
